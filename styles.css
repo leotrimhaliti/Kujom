@@ -31,6 +31,8 @@ body {
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
 }
 
 em { font-style: italic; }
@@ -67,6 +69,9 @@ em { font-style: italic; }
   border-radius: 999px;
   padding: 13px 28px;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px; /* comfortable tap target */
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, opacity 0.15s ease;
 }
 .btn:active { transform: scale(0.98); }
@@ -336,8 +341,8 @@ em { font-style: italic; }
 
 .guess-card {
   position: absolute;
-  right: 18px;
-  bottom: 18px;
+  right: calc(18px + env(safe-area-inset-right));
+  bottom: calc(18px + env(safe-area-inset-bottom));
   z-index: 20;
   background: rgba(22, 19, 15, 0.88);
   backdrop-filter: blur(14px);
@@ -762,12 +767,14 @@ em { font-style: italic; }
   font: inherit;
   font-size: 13px;
   font-weight: 600;
-  padding: 8px 12px;
+  padding: 9px 12px;
   border: none;
   border-radius: 999px;
   background: transparent;
   color: var(--muted);
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: background 0.18s ease, color 0.18s ease;
 }
 .lb-tab.is-on {
@@ -824,7 +831,11 @@ em { font-style: italic; }
   .home-map-caption { font-size: 13px; }
 }
 
-@media (max-width: 720px) {
+/* ------------------------------------------------------------
+   Touch layout — keyed on hover capability, not just width, so
+   tablets (which can't hover) get the tap-to-open sheet too.
+   ------------------------------------------------------------ */
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
   .only-desktop { display: none; }
   .only-mobile { display: block; }
 
@@ -832,8 +843,9 @@ em { font-style: italic; }
     min-width: 0;
     width: 100%;
     border-radius: 0;
-    padding: 12px 16px;
     min-height: 76px;
+    padding: calc(12px + env(safe-area-inset-top)) 16px 12px
+             calc(16px + env(safe-area-inset-left));
   }
   .hud-wordmark { font-size: 22px; }
 
@@ -841,16 +853,117 @@ em { font-style: italic; }
     inset: auto 0 0 0;
     width: 100% !important;
     border-radius: 20px 20px 0 0;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
     transform: translateY(105%);
     transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
   }
   .guess-card.open { transform: none; }
-  .guess-card .guess-map { height: 45dvh !important; }
+  /* leave room for the label, button, and safe area */
+  .guess-card .guess-map { height: min(42dvh, 340px) !important; }
 
   .guess-card.open ~ .btn-fab { display: none; }
   .guess-card.open ~ .map-close { display: block; }
 
+  .btn-fab { bottom: calc(22px + env(safe-area-inset-bottom)); }
+  .map-close {
+    top: calc(12px + env(safe-area-inset-top));
+    right: calc(12px + env(safe-area-inset-right));
+  }
+
   .card { padding: 24px 20px; }
   .result-distance { font-size: 34px; }
   .final-score { font-size: 46px; }
+
+  /* 16px minimum stops iOS Safari from zooming on focus */
+  #lobby-name, #lb-name { font-size: 16px; }
+}
+
+/* ------------------------------------------------------------
+   Narrow phones — stack side-by-side controls so labels
+   never get clipped.
+   ------------------------------------------------------------ */
+@media (max-width: 400px) {
+  .final-actions { flex-direction: column; }
+  .lb-submit { flex-direction: column; }
+  .lb-submit .btn { width: 100%; }
+  .lobby-name-row { flex-direction: column; }
+  .lobby-name-row .btn { width: 100%; }
+  .home-actions { width: 100%; flex-direction: column; }
+  .home-actions .btn { width: 100%; }
+
+  .card { padding: 22px 16px; }
+  .home-title { font-size: clamp(60px, 20vw, 96px); }
+  .lobby-code { font-size: 42px; }
+  .guess-map-label em { font-size: 15px; }
+  .guess-map-label span { font-size: 11px; }
+}
+
+/* ------------------------------------------------------------
+   Short viewports — landscape phones. Everything has to fit
+   in ~360px of height.
+   ------------------------------------------------------------ */
+@media (max-height: 520px) and (orientation: landscape) {
+  .home-grid {
+    grid-template-columns: 1.2fr 0.8fr;
+    padding: 20px 28px;
+    gap: 18px;
+  }
+  .home-inner { align-items: flex-start; text-align: left; gap: 12px; }
+  .home-title { font-size: clamp(44px, 9vh, 72px); }
+  .home-sub { font-size: 14px; line-height: 1.5; }
+  .home-kicker { font-size: 11px; }
+  .home-map { height: min(62vh, 240px); }
+  .home-map-caption { font-size: 11px; padding-top: 4px; }
+  .home-footer { display: none; }
+
+  /* guess sheet: a narrower right-hand panel reads better than a
+     full-width sheet that swallows the whole panorama */
+  .guess-card {
+    inset: auto 0 0 auto !important;
+    width: min(64vw, 460px) !important;
+    border-radius: 18px 0 0 0;
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  .guess-card .guess-map { height: min(52dvh, 190px) !important; }
+  .guess-card .btn { padding: 10px 20px; font-size: 14px; }
+  .guess-map-label { padding-top: 0; }
+
+  .hud-brand { min-height: 62px; padding-top: calc(8px + env(safe-area-inset-top)); }
+  .hud-wordmark { font-size: 19px; }
+
+  .round-intro-num { font-size: 46px; }
+  .round-intro-kicker { font-size: 11px; letter-spacing: 0.26em; }
+
+  .card { padding: 16px 18px; }
+  .result-kicker { margin-bottom: 6px; font-size: 11px; }
+  .result-distance { font-size: 26px; }
+  .result-points { font-size: 13px; margin-top: 2px; }
+  .score-track { margin: 10px 0; }
+  .result-map { height: 120px; margin-bottom: 12px; }
+  .final-score { font-size: 34px; }
+  .final-total { font-size: 16px; }
+  .final-verdict { font-size: 13.5px; margin: 8px 0 12px; }
+  .lb-title { font-size: 26px; margin-bottom: 12px; }
+  .lb-block { padding-top: 12px; margin-bottom: 12px; }
+  .final-rounds li { padding: 7px 4px; font-size: 13px; }
+  .standings li { padding: 7px 4px; font-size: 13px; }
+  .lobby-code { font-size: 34px; margin-bottom: 12px; }
+  .lobby-players { margin: 2px 0 12px; min-height: 0; }
+  .lobby-players li { padding: 6px 12px; font-size: 13px; }
+  .lobby-leave { margin-top: 10px; }
+}
+
+/* very short (landscape on small phones) — cards must scroll cleanly */
+@media (max-height: 420px) {
+  .card { max-height: calc(100dvh - 16px); }
+  .screen-overlay.is-active { padding: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
