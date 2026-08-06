@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ku jom? — a Kosovo geography game</title>
+  <meta name="description" content="You're dropped somewhere in Kosovo on Street View. Figure out where. Five rounds, no hints." />
+
+  <meta property="og:title" content="ku jom? — a Kosovo geography game" />
+  <meta property="og:description" content="You're dropped somewhere in Kosovo. Figure out where." />
+  <meta property="og:type" content="website" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📍</text></svg>" />
+</head>
+<body>
+
+  <!-- ============ LANDING ============ -->
+  <section id="screen-home" class="screen screen-home is-active">
+    <div class="home-grid">
+      <div class="home-inner">
+        <p class="home-kicker" id="home-kicker">a geography game about Kosovo</p>
+        <h1 class="home-title">ku <em>jom</em>?</h1>
+        <p class="home-sub" id="home-sub">
+          You get dropped somewhere in Kosovo on Street View.
+          Look around, then guess where you are on the map.
+          Five rounds. The closer you get, the more points you score.
+        </p>
+        <div class="home-actions">
+          <button id="btn-play" class="btn btn-primary btn-lg">Start playing</button>
+          <button id="btn-party" class="btn btn-ghost btn-lg">Create a party link</button>
+        </div>
+        <p class="home-note">
+          <button id="btn-view-lb" class="linkish">see the leaderboard</button>
+          <span class="hud-dot">·</span> imagery © Google
+        </p>
+      </div>
+
+      <figure class="home-map">
+        <canvas id="dotmap" aria-hidden="true"></canvas>
+        <figcaption class="home-map-caption">
+          every dot is one of <span id="loc-count">…</span> places you might land
+        </figcaption>
+      </figure>
+    </div>
+
+    <footer class="home-footer">
+      <span>built for fun, not affiliated with Google or GeoGuessr</span>
+    </footer>
+  </section>
+
+  <!-- ============ GAME ============ -->
+  <section id="screen-game" class="screen screen-game" aria-hidden="true">
+
+    <div class="pano-wrap">
+      <iframe id="pano" title="Street View panorama" allow="accelerometer; gyroscope"
+              referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+      <div class="pano-vignette" aria-hidden="true"></div>
+      <!-- covers the embed's location label so the answer isn't visible -->
+      <div class="hud hud-brand" aria-hidden="false">
+        <span class="hud-wordmark">ku <em>jom</em>?</span>
+        <span class="hud-meta">
+          <span class="hud-pips" id="hud-pips"></span>
+          <span class="sr-only" id="hud-round">Round 1 / 5</span>
+          <span class="hud-dot">·</span>
+          <span id="hud-score">0 pts</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- round intro flash -->
+    <div class="round-intro" id="round-intro" aria-hidden="true">
+      <span class="round-intro-kicker">round</span>
+      <span class="round-intro-num" id="round-intro-num">1 / 5</span>
+    </div>
+
+    <!-- guess map card -->
+    <div class="guess-card" id="guess-card">
+      <div class="guess-map-label">
+        <em>so — ku jom?</em>
+        <span>tap the map to answer</span>
+      </div>
+      <div id="guess-map" class="guess-map"></div>
+      <button id="btn-guess" class="btn btn-primary btn-block" disabled>Place a pin first</button>
+    </div>
+
+    <button id="btn-open-map" class="btn btn-primary btn-fab only-mobile">Make a guess</button>
+    <button id="btn-close-map" class="map-close only-mobile" aria-label="Close map">✕</button>
+  </section>
+
+  <!-- ============ LEADERBOARD (from landing) ============ -->
+  <section id="screen-lb" class="screen screen-overlay" aria-hidden="true">
+    <div class="card">
+      <p class="result-kicker">all-time best</p>
+      <h2 class="lb-title">who knows Kosovo</h2>
+      <ul class="standings" id="lb-global-list"></ul>
+      <p class="lb-empty" id="lb-global-empty" hidden>No scores yet — be the first.</p>
+      <button id="btn-lb-close" class="btn btn-primary btn-block">Close</button>
+    </div>
+  </section>
+
+  <!-- ============ PARTY LOBBY ============ -->
+  <section id="screen-lobby" class="screen screen-overlay" aria-hidden="true">
+    <div class="card lobby-card">
+      <p class="result-kicker" id="lobby-kicker">party room</p>
+      <h2 class="lobby-code" id="lobby-code">····</h2>
+
+      <div class="lobby-name-row" id="lobby-name-row">
+        <input id="lobby-name" maxlength="20" placeholder="your name" autocomplete="nickname" />
+        <button id="btn-lobby-go" class="btn btn-primary">Open the room</button>
+      </div>
+
+      <div id="lobby-room" hidden>
+        <ul class="lobby-players" id="lobby-players"></ul>
+        <div class="final-actions">
+          <button id="btn-lobby-copy" class="btn btn-ghost">Copy invite link</button>
+          <button id="btn-lobby-start" class="btn btn-primary">Start the game</button>
+        </div>
+        <p class="lobby-wait" id="lobby-wait" hidden>waiting for the host to start…</p>
+      </div>
+
+      <button id="btn-lobby-leave" class="lobby-leave">leave the party</button>
+    </div>
+  </section>
+
+  <!-- ============ ROUND RESULT ============ -->
+  <section id="screen-result" class="screen screen-overlay" aria-hidden="true">
+    <div class="card result-card">
+      <p class="result-kicker" id="result-round-label">Round 1</p>
+      <h2 class="result-distance" id="result-distance">—</h2>
+      <p class="result-points"><span id="result-points">0</span> points</p>
+      <div class="score-track"><div class="score-fill" id="score-fill"></div></div>
+      <div id="result-map" class="result-map"></div>
+      <ul class="standings" id="result-standings" hidden></ul>
+      <button id="btn-next" class="btn btn-primary btn-block">Next round</button>
+    </div>
+  </section>
+
+  <!-- ============ FINAL ============ -->
+  <section id="screen-final" class="screen screen-overlay" aria-hidden="true">
+    <div class="card final-card">
+      <p class="result-kicker">That's the game</p>
+      <h2 class="final-score"><span id="final-score">0</span><span class="final-total"> / 25,000</span></h2>
+      <p class="final-verdict" id="final-verdict">—</p>
+      <p class="final-vs" id="final-vs" hidden></p>
+      <ul class="standings" id="final-standings" hidden></ul>
+
+      <!-- leaderboard -->
+      <div class="lb-block" id="lb-block" hidden>
+        <div class="lb-submit" id="lb-submit">
+          <input id="lb-name" maxlength="20" placeholder="your name" autocomplete="nickname" />
+          <button id="btn-lb-submit" class="btn btn-primary">Save score</button>
+        </div>
+        <div class="lb-tabs" id="lb-tabs" hidden>
+          <button class="lb-tab is-on" data-tab="party">This game</button>
+          <button class="lb-tab" data-tab="global">All time</button>
+        </div>
+        <ul class="standings" id="lb-list" hidden></ul>
+        <p class="lb-empty" id="lb-empty" hidden></p>
+      </div>
+
+      <ul class="final-rounds" id="final-rounds"></ul>
+      <div class="final-actions">
+        <button id="btn-share" class="btn btn-ghost">Copy result</button>
+        <button id="btn-again" class="btn btn-primary">Play again</button>
+      </div>
+      <button id="btn-challenge" class="btn btn-challenge btn-block">Challenge a friend on these exact spots</button>
+      <p class="final-best" id="final-best"></p>
+    </div>
+  </section>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="config.js"></script>
+  <script src="data/locations.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

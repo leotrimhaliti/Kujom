@@ -1,0 +1,9 @@
+# raw map-making.app export (8 MB, source data — not needed at runtime)
+temp.json
+
+# tooling
+node_modules/
+.vercel/
+.DS_Store
+Thumbs.db
+*.log
