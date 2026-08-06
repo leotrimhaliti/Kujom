@@ -31,6 +31,8 @@
   let guessMap = null;
   let guessMarker = null;
   let resultMap = null;
+  let userAdjustedMap = false; // once you pan/zoom, stop auto-fitting
+  let fittingBounds = false;
 
   // ---------- dom ----------
   const $ = (id) => document.getElementById(id);
@@ -216,23 +218,30 @@
       btn.textContent = "Guess";
     });
 
-    // leaflet needs a size refresh when the card animates
-    const card = $("guess-card");
-    card.addEventListener("transitionend", () => {
-      guessMap.invalidateSize();
-      if (!guessLatLng) fitKosovo();
-    });
-    card.addEventListener("mouseenter", () =>
-      setTimeout(() => {
-        guessMap.invalidateSize();
-        if (!guessLatLng) fitKosovo();
-      }, 260)
+    // any real interaction with the map means the player has chosen
+    // their own view — never yank it back after that
+    const mapEl = $("guess-map");
+    ["pointerdown", "touchstart", "wheel", "dblclick"].forEach((ev) =>
+      mapEl.addEventListener(ev, () => { userAdjustedMap = true; }, { passive: true })
     );
+
+    // leaflet needs a size refresh when the card resizes.
+    // NOTE: leaflet animates zoom with CSS transitions and transitionend
+    // bubbles, so this must ignore anything coming from inside the map.
+    const card = $("guess-card");
+    card.addEventListener("transitionend", (e) => {
+      if (e.target !== card && e.target !== mapEl) return;
+      if (e.propertyName !== "width" && e.propertyName !== "height") return;
+      refreshMapSize();
+    });
+    card.addEventListener("mouseenter", () => setTimeout(refreshMapSize, 260));
   }
 
   function fitKosovo() {
     if (!guessMap) return;
+    fittingBounds = true;
     guessMap.fitBounds(KOSOVO_BOUNDS, { padding: [6, 6], animate: false });
+    fittingBounds = false;
   }
 
   function renderPips() {
@@ -266,6 +275,7 @@
     btn.disabled = true;
     btn.textContent = "Place a pin first";
 
+    userAdjustedMap = false; // fresh round, fresh country-wide view
     fitKosovo();
     $("guess-card").classList.remove("open");
 
@@ -914,8 +924,10 @@
   function refreshMapSize() {
     if (!guessMap) return;
     const settle = () => {
+      if (!guessMap) return;
       guessMap.invalidateSize();
-      if (!guessLatLng) fitKosovo();
+      // only re-frame while the player hasn't touched the map yet
+      if (!guessLatLng && !userAdjustedMap) fitKosovo();
     };
     settle();
     setTimeout(settle, 60);
