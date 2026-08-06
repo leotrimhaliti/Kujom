@@ -39,7 +39,6 @@
         </div>
         <p class="home-note">
           <button id="btn-view-lb" class="linkish">see the leaderboard</button>
-          <span class="hud-dot">·</span> imagery © Google
         </p>
       </div>
 
@@ -52,7 +51,7 @@
     </div>
 
     <footer class="home-footer">
-      <span>built for fun, not affiliated with Google or GeoGuessr</span>
+      <span>imagery © Google · built for fun, not affiliated with Google or GeoGuessr</span>
     </footer>
   </section>
 
@@ -87,12 +86,14 @@
         <em>so — ku jom?</em>
         <span>tap the map to answer</span>
       </div>
-      <div id="guess-map" class="guess-map"></div>
+      <div class="guess-map-holder">
+        <div id="guess-map" class="guess-map"></div>
+        <span class="guess-mini-hint">tap to guess</span>
+      </div>
       <button id="btn-guess" class="btn btn-primary btn-block" disabled>Place a pin first</button>
     </div>
 
-    <button id="btn-open-map" class="btn btn-primary btn-fab only-mobile">Make a guess</button>
-    <button id="btn-close-map" class="map-close only-mobile" aria-label="Close map">✕</button>
+    <button id="btn-close-map" class="map-close" aria-label="Shrink map">✕</button>
   </section>
 
   <!-- ============ LEADERBOARD (from landing) ============ -->

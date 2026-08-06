@@ -383,6 +383,10 @@ em { font-style: italic; }
   white-space: nowrap;
 }
 
+.guess-map-holder {
+  position: relative;
+}
+
 .guess-map {
   height: 200px;
   border-radius: 11px;
@@ -391,6 +395,26 @@ em { font-style: italic; }
   background: var(--paper-2);
   outline: 1px solid rgba(255, 255, 255, 0.12);
   outline-offset: -1px;
+}
+
+/* only shown on the collapsed mobile mini-map */
+.guess-mini-hint {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  transform: translateX(-50%);
+  z-index: 500;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #f5f2ea;
+  background: rgba(22, 19, 15, 0.82);
+  padding: 4px 10px;
+  border-radius: 999px;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .guess-card .btn-primary:disabled {
@@ -403,16 +427,6 @@ em { font-style: italic; }
   height: 330px;
 }
 
-/* mobile floating action */
-.btn-fab {
-  position: absolute;
-  z-index: 20;
-  bottom: 22px;
-  left: 50%;
-  transform: translateX(-50%);
-  box-shadow: 0 10px 28px -6px rgba(36, 67, 156, 0.6);
-}
-.btn-fab:active { transform: translateX(-50%) scale(0.98); }
 
 .map-close {
   position: absolute;
@@ -816,19 +830,49 @@ em { font-style: italic; }
    ============================================================ */
 
 @media (max-width: 900px) {
+  /* let the landing scroll instead of clipping on short screens.
+     the screen itself is the flex column so the in-flow footer is
+     counted, rather than pushing past a 100%-tall grid. */
+  .screen-home.is-active {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
   .home-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
-    padding: 32px 24px 64px;
-    align-content: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: auto; /* base rule is height:100%, which double-counts the footer */
+    flex: 1 0 auto;
+    min-height: 0;
+    gap: 14px;
+    padding: 22px 22px 12px;
   }
   .home-inner {
     align-items: center;
     text-align: center;
-    gap: 16px;
+    gap: 12px;
+    max-width: 26rem;
   }
-  .home-map { height: 30vh; }
-  .home-map-caption { font-size: 13px; }
+  .home-sub { font-size: 15px; line-height: 1.55; max-width: 33ch; }
+  .home-map {
+    width: 100%;
+    max-width: 21rem;
+    height: min(30vh, 250px);
+    flex: none;
+  }
+  .home-map-caption { font-size: 12.5px; padding-top: 6px; }
+  /* in flow, so it can never overlap the content */
+  .home-footer {
+    position: static;
+    flex: none;
+    margin-top: 4px;
+    padding: 0 22px calc(10px + env(safe-area-inset-bottom));
+    font-size: 11.5px;
+    line-height: 1.5;
+  }
 }
 
 /* ------------------------------------------------------------
@@ -849,22 +893,55 @@ em { font-style: italic; }
   }
   .hud-wordmark { font-size: 22px; }
 
+  /* ---- collapsed: a small always-visible map, like GeoGuessr mobile ---- */
   .guess-card {
-    inset: auto 0 0 0;
-    width: 100% !important;
-    border-radius: 20px 20px 0 0;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
-    transform: translateY(105%);
-    transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
+    left: auto;
+    right: calc(10px + env(safe-area-inset-right));
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    width: min(48vw, 215px) !important;
+    padding: 7px;
+    gap: 0;
+    border-radius: 15px;
+    transform: none;
+    cursor: pointer;
   }
-  .guess-card.open { transform: none; }
-  /* leave room for the label, button, and safe area */
-  .guess-card .guess-map { height: min(42dvh, 340px) !important; }
+  .guess-card .guess-map {
+    height: 112px !important;
+    pointer-events: none; /* taps expand the card instead of dropping a pin */
+  }
+  .guess-card .guess-map-label,
+  .guess-card #btn-guess { display: none; }
+  /* hide zoom buttons on the mini map but keep the required attribution */
+  .guess-card .leaflet-control-zoom { display: none; }
+  .guess-card .leaflet-control-attribution {
+    font-size: 8px;
+    padding: 0 3px;
+    line-height: 1.4;
+  }
+  .guess-mini-hint { display: block; }
 
-  .guess-card.open ~ .btn-fab { display: none; }
+  /* ---- expanded: bottom sheet ---- */
+  .guess-card.open {
+    inset: auto 0 0 0 !important;
+    width: 100% !important;
+    max-width: none;
+    border-radius: 20px 20px 0 0;
+    padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+    gap: 10px;
+    cursor: default;
+  }
+  .guess-card.open .guess-map {
+    height: min(42dvh, 340px) !important;
+    pointer-events: auto;
+  }
+  .guess-card.open .guess-map-label { display: flex; }
+  .guess-card.open #btn-guess { display: block; }
+  .guess-card.open .leaflet-control-zoom { display: block; }
+  .guess-card.open .leaflet-control-attribution { font-size: 11px; padding: 0 5px; }
+  .guess-card.open .guess-mini-hint { display: none; }
+
   .guess-card.open ~ .map-close { display: block; }
 
-  .btn-fab { bottom: calc(22px + env(safe-area-inset-bottom)); }
   .map-close {
     top: calc(12px + env(safe-area-inset-top));
     right: calc(12px + env(safe-area-inset-right));
@@ -903,30 +980,39 @@ em { font-style: italic; }
    in ~360px of height.
    ------------------------------------------------------------ */
 @media (max-height: 520px) and (orientation: landscape) {
+  /* back to two columns so the short viewport isn't a tall stack */
   .home-grid {
-    grid-template-columns: 1.2fr 0.8fr;
-    padding: 20px 28px;
-    gap: 18px;
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    grid-template-rows: auto;
+    align-items: center;
+    justify-items: center;
+    padding: 18px 28px;
+    gap: 20px;
+    min-height: 100%;
   }
-  .home-inner { align-items: flex-start; text-align: left; gap: 12px; }
+  .home-inner { align-items: flex-start; text-align: left; gap: 10px; max-width: none; }
   .home-title { font-size: clamp(44px, 9vh, 72px); }
   .home-sub { font-size: 14px; line-height: 1.5; }
   .home-kicker { font-size: 11px; }
-  .home-map { height: min(62vh, 240px); }
+  .home-map { height: min(66vh, 230px); max-width: 20rem; }
   .home-map-caption { font-size: 11px; padding-top: 4px; }
   .home-footer { display: none; }
 
-  /* guess sheet: a narrower right-hand panel reads better than a
-     full-width sheet that swallows the whole panorama */
-  .guess-card {
+  /* collapsed mini-map stays small in landscape */
+  .guess-card .guess-map { height: 92px !important; }
+  .guess-card { width: min(32vw, 190px) !important; }
+
+  /* expanded: a right-hand panel keeps the panorama visible */
+  .guess-card.open {
     inset: auto 0 0 auto !important;
     width: min(64vw, 460px) !important;
     border-radius: 18px 0 0 0;
-    padding: 8px 10px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
     gap: 6px;
   }
-  .guess-card .guess-map { height: min(52dvh, 190px) !important; }
-  .guess-card .btn { padding: 10px 20px; font-size: 14px; }
+  .guess-card.open .guess-map { height: min(52dvh, 180px) !important; }
+  .guess-card.open .btn { padding: 10px 20px; font-size: 14px; min-height: 40px; }
   .guess-map-label { padding-top: 0; }
 
   .hud-brand { min-height: 62px; padding-top: calc(8px + env(safe-area-inset-top)); }

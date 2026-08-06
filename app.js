@@ -11,6 +11,8 @@
   const FALLOFF_KM = CFG.falloffKm || 15;
 
   const KOSOVO_CENTER = [42.56, 20.9];
+  // whole-country view, so the map reads at any size
+  const KOSOVO_BOUNDS = [[41.85, 20.0], [43.27, 21.81]];
   const TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
   const TILE_ATTR =
     '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
@@ -197,6 +199,7 @@
       zoom: 8,
       zoomControl: false,
       attributionControl: true,
+      tap: false, // let our own tap-to-expand handler run first
     });
     L.control.zoom({ position: "topright" }).addTo(guessMap);
     L.tileLayer(TILE_URL, { attribution: TILE_ATTR, maxZoom: 18 }).addTo(guessMap);
@@ -215,8 +218,21 @@
 
     // leaflet needs a size refresh when the card animates
     const card = $("guess-card");
-    card.addEventListener("transitionend", () => guessMap.invalidateSize());
-    card.addEventListener("mouseenter", () => setTimeout(() => guessMap.invalidateSize(), 260));
+    card.addEventListener("transitionend", () => {
+      guessMap.invalidateSize();
+      if (!guessLatLng) fitKosovo();
+    });
+    card.addEventListener("mouseenter", () =>
+      setTimeout(() => {
+        guessMap.invalidateSize();
+        if (!guessLatLng) fitKosovo();
+      }, 260)
+    );
+  }
+
+  function fitKosovo() {
+    if (!guessMap) return;
+    guessMap.fitBounds(KOSOVO_BOUNDS, { padding: [6, 6], animate: false });
   }
 
   function renderPips() {
@@ -250,7 +266,7 @@
     btn.disabled = true;
     btn.textContent = "Place a pin first";
 
-    guessMap.setView(KOSOVO_CENTER, 8);
+    fitKosovo();
     $("guess-card").classList.remove("open");
 
     $("hud-round").textContent = `Round ${roundIndex + 1} / ${gameRoundIndices.length}`;
@@ -291,8 +307,8 @@
       resultMap.remove();
       resultMap = null;
     }
-    resultMap = L.map("result-map", { zoomControl: false, attributionControl: false });
-    L.tileLayer(TILE_URL, { maxZoom: 18 }).addTo(resultMap);
+    resultMap = L.map("result-map", { zoomControl: false });
+    L.tileLayer(TILE_URL, { attribution: TILE_ATTR, maxZoom: 18 }).addTo(resultMap);
     L.marker(guessLatLng, { icon: pinIcon("pin-guess") }).addTo(resultMap);
     L.marker(actual, { icon: pinIcon("pin-actual") }).addTo(resultMap);
     L.polyline([guessLatLng, actual], {
@@ -891,20 +907,54 @@
     });
   });
 
-  $("btn-open-map").addEventListener("click", () => {
-    $("guess-card").classList.add("open");
-    setTimeout(() => guessMap && guessMap.invalidateSize(), 320);
+  // on touch layouts the collapsed mini-map expands when tapped
+  const miniQuery = window.matchMedia("(max-width: 720px), (hover: none) and (pointer: coarse)");
+  const isMini = () => miniQuery.matches;
+
+  function refreshMapSize() {
+    if (!guessMap) return;
+    const settle = () => {
+      guessMap.invalidateSize();
+      if (!guessLatLng) fitKosovo();
+    };
+    settle();
+    setTimeout(settle, 60);
+    setTimeout(settle, 320);
+  }
+
+  $("guess-card").addEventListener("click", () => {
+    const card = $("guess-card");
+    if (!isMini() || card.classList.contains("open")) return;
+    card.classList.add("open");
+    refreshMapSize();
   });
-  $("btn-close-map").addEventListener("click", () => $("guess-card").classList.remove("open"));
+
+  $("btn-close-map").addEventListener("click", (e) => {
+    e.stopPropagation();
+    $("guess-card").classList.remove("open");
+    refreshMapSize();
+  });
+
+  miniQuery.addEventListener("change", refreshMapSize);
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && screens.result.classList.contains("is-active")) nextRound();
     else if (e.key === "Enter" && screens.game.classList.contains("is-active") && guessLatLng) submitGuess();
   });
 
-  window.addEventListener("resize", () => {
-    if (screens.home.classList.contains("is-active")) drawDotMap();
-  });
+  // redraw the dot map whenever its box changes (orientation, font load, resize)
+  if (window.ResizeObserver) {
+    let raf = null;
+    new ResizeObserver(() => {
+      if (!screens.home.classList.contains("is-active")) return;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(drawDotMap);
+    }).observe($("dotmap"));
+  } else {
+    window.addEventListener("resize", () => {
+      if (screens.home.classList.contains("is-active")) drawDotMap();
+    });
+  }
 
   // ---------- boot ----------
   function boot(data) {
