@@ -148,6 +148,20 @@ em { font-style: italic; }
   padding-top: 10px;
 }
 
+.home-logo {
+  width: 76px;
+  height: auto;
+  margin-bottom: -6px;
+  filter: drop-shadow(0 6px 14px rgba(144, 19, 29, 0.25));
+}
+
+.card-logo {
+  width: 44px;
+  height: auto;
+  margin: 0 auto 10px;
+  display: block;
+}
+
 .home-kicker {
   font-size: 13px;
   font-weight: 500;
@@ -252,11 +266,24 @@ em { font-style: italic; }
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 10px 34px -6px rgba(0, 0, 0, 0.45);
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
   min-width: 285px;
   min-height: 88px;
-  justify-content: center;
+  justify-content: flex-start;
+}
+
+.hud-logo {
+  width: 34px;
+  height: auto;
+  flex: none;
+}
+
+.hud-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .hud-wordmark {
