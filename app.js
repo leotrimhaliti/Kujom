@@ -43,6 +43,15 @@
     final: $("screen-final"),
   };
 
+  // analytics — no-ops when gtag is blocked or absent
+  function track(event, params) {
+    try {
+      if (typeof window.gtag === "function") window.gtag("event", event, params || {});
+    } catch (_) {
+      /* never let analytics break the game */
+    }
+  }
+
   function show(name) {
     Object.entries(screens).forEach(([key, el]) => {
       const active = key === name || (name !== "home" && key === "game" && (name === "result" || name === "final"));
@@ -189,6 +198,9 @@
     roundIndex = 0;
     totalScore = 0;
     roundResults = [];
+    track("game_start", {
+      mode: MP.active ? "party" : challenge ? "challenge" : "solo",
+    });
     show("game");
     initGuessMap();
     loadRound();
@@ -354,6 +366,10 @@
   }
 
   function showFinal() {
+    track("game_complete", {
+      score: totalScore,
+      mode: MP.active ? "party" : challenge ? "challenge" : "solo",
+    });
     show("game");
     screens.final.classList.add("is-active");
     screens.final.setAttribute("aria-hidden", "false");
@@ -408,6 +424,7 @@
   }
 
   function shareChallenge() {
+    track("challenge_shared");
     const url = encodeChallenge();
     const text =
       `ku jom? — I scored ${fmtPts(totalScore)} on these exact 5 spots in Kosovo. ` +
@@ -418,6 +435,7 @@
   // landing-page party: live lobby when Supabase is configured,
   // otherwise fall back to a same-rounds async link
   function createParty() {
+    track("party_created", { live: mpAvailable() });
     if (mpAvailable()) {
       openLobby("create");
       return;
@@ -591,6 +609,7 @@
       if (!lbSubmitted) {
         await lbSubmit(name, totalScore, gameRoundIndices.length, partyKey());
         lbSubmitted = true;
+        track("score_saved", { score: totalScore });
       }
       $("lb-submit").hidden = true;
       await refreshFinalBoard();
