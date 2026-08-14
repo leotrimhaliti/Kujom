@@ -1,5 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "kujom.vercel.app" }],
+      "destination": "https://kujom.live/:path*",
+      "statusCode": 308
+    }
+  ],
   "headers": [
     {
       "source": "/data/locations.js",

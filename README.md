@@ -6,7 +6,7 @@ look around, and pin where you think you are. Five rounds, scored by distance.
 Kosovo was only added to Google Street View in July 2026, so most of this imagery
 is brand new — there is no accumulated muscle memory for it yet.
 
-**Play:** [kujom.vercel.app](https://kujom.vercel.app/)
+**Play:** [kujom.live](https://kujom.live/)
 
 ## Features
 
