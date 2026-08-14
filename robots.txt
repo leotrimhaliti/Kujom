@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://kujom.live/sitemap.xml
+Sitemap: https://www.kujom.live/sitemap.xml
